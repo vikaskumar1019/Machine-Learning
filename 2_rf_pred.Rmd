@@ -1,0 +1,430 @@
+---
+title: "Random forest model"
+output:
+  html_document:
+    theme: sandstone
+    highlight: tango
+    toc: true
+    toc_float: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading packages
+```{r}
+library(tidyverse)
+library(gridExtra)
+library(reshape2)
+library(caret)
+library(janitor)
+```
+
+# Data 
+Use model output and predictions from 1_random_forest_model.R script
+
+# Parameters
+
+I used ntree = 2000 for all models
+
+I left each model select the mtry that maximized the model's Rsquared
+
+```{r}
+# Looking at mtry
+fold1.1_impute # mtry = 7
+fold1.2_impute # mtry = 7
+fold1.3_impute # mtry = 7
+fold1.4_impute # mtry = 7
+fold1.5_impute # mtry = 13
+
+fold2.1_impute # mtry = 7
+fold2.2_impute # mtry = 7
+fold2.3_impute # mtry = 7
+fold2.4_impute # mtry = 7
+fold2.5_impute # mtry = 7
+
+fold3.1_impute # mtry = 7
+fold3.2_impute # mtry = 7
+fold3.3_impute # mtry = 7
+fold3.4_impute # mtry = 7
+fold3.5_impute # mtry = 7
+
+fold4.1_impute # mtry = 13
+fold4.2_impute # mtry = 7
+fold4.3_impute # mtry = 7
+fold4.4_impute # mtry = 7
+fold4.5_impute # mtry = 7
+
+fold5.1_impute # mtry = 13
+fold5.2_impute # mtry = 7
+fold5.3_impute # mtry = 7
+fold5.4_impute # mtry = 7
+fold5.5_impute # mtry = 7
+```
+
+# Model Assessment
+## Combining predictions
+```{r, fig.height=8, fig.width=12}
+# merging all the predictions together
+# first imputation
+impute_predictions.1 <- rbind(fold1.1_impute_prediction_combined, fold2.1_impute_prediction_combined, fold3.1_impute_prediction_combined, fold4.1_impute_prediction_combined, fold5.1_impute_prediction_combined)
+# second imputation
+impute_predictions.2 <- rbind(fold1.2_impute_prediction_combined, fold2.2_impute_prediction_combined, fold3.2_impute_prediction_combined, fold4.2_impute_prediction_combined, fold5.2_impute_prediction_combined)
+# third imputation
+impute_predictions.3 <- rbind(fold1.3_impute_prediction_combined, fold2.3_impute_prediction_combined, fold3.3_impute_prediction_combined, fold4.3_impute_prediction_combined, fold5.3_impute_prediction_combined)
+# fourth imputation
+impute_predictions.4 <- rbind(fold1.4_impute_prediction_combined, fold2.4_impute_prediction_combined, fold3.4_impute_prediction_combined, fold4.4_impute_prediction_combined, fold5.4_impute_prediction_combined)
+# fifth imputation
+impute_predictions.5 <- rbind(fold1.5_impute_prediction_combined, fold2.5_impute_prediction_combined, fold3.5_impute_prediction_combined, fold4.5_impute_prediction_combined, fold5.5_impute_prediction_combined)
+```
+
+## Figure 2A
+```{r}
+impute_predictions_avg <- impute_predictions.1 %>%
+  rename(bio_age1 = bio_age) %>% 
+  left_join(dplyr::select(impute_predictions.2, bio_age2 = bio_age, sname, age_year), by=c("sname", "age_year")) %>% 
+  left_join(dplyr::select(impute_predictions.3, bio_age3 = bio_age, sname, age_year), by=c("sname", "age_year")) %>% 
+  left_join(dplyr::select(impute_predictions.4, bio_age4 = bio_age, sname, age_year), by=c("sname", "age_year")) %>% 
+  left_join(dplyr::select(impute_predictions.5, bio_age5 = bio_age, sname, age_year), by=c("sname", "age_year")) %>% 
+  arrange(sname, age_year) %>% 
+  mutate(avg_bio_age = (bio_age1 + bio_age2 + bio_age3 + bio_age4 + bio_age5)/5)
+
+
+ggplot(impute_predictions_avg, aes(x = age_year, y = avg_bio_age)) +
+  geom_point(alpha = 0.25) +
+  stat_smooth(fill = "firebrick", color = NA, method = "lm") +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  scale_x_continuous(breaks = seq(2, 28, by = 2)) +
+  scale_y_continuous(breaks = seq(2, 28, by = 2)) +
+  labs(x = "Chronological Age", y = "Biological Age") +
+  theme_bw()
+
+r <- cor(impute_predictions_avg$age_year, impute_predictions_avg$avg_bio_age, method = c("pearson"))
+r 
+r^2 
+median(abs(impute_predictions_avg$avg_bio_age - impute_predictions_avg$age_year)) 
+mean(abs(impute_predictions_avg$avg_bio_age - impute_predictions_avg$age_year)) 
+```
+
+# Checking feature importance
+```{r, fig.width=8, fig.height=10}
+# Extracting the importance for each fold
+# FOLD 1
+importance1.1 <- varImp(fold1.1_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall1.1 = Overall)
+importance1.2 <- varImp(fold1.2_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall1.2 = Overall)
+importance1.3 <- varImp(fold1.3_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall1.3 = Overall)
+importance1.4 <- varImp(fold1.4_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall1.4 = Overall)
+importance1.5 <- varImp(fold1.5_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall1.5 = Overall)
+# FOLD 2
+importance2.1 <- varImp(fold2.1_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall2.1 = Overall)
+importance2.2 <- varImp(fold2.2_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall2.2 = Overall)
+importance2.3 <- varImp(fold2.3_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall2.3 = Overall)
+importance2.4 <- varImp(fold2.4_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall2.4 = Overall)
+importance2.5 <- varImp(fold2.5_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall2.5 = Overall)
+# FOLD 3
+importance3.1 <- varImp(fold3.1_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall3.1 = Overall)
+importance3.2 <- varImp(fold3.2_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall3.2 = Overall)
+importance3.3 <- varImp(fold3.3_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall3.3 = Overall)
+importance3.4 <- varImp(fold3.4_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall3.4 = Overall)
+importance3.5 <- varImp(fold3.5_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall3.5 = Overall)
+# FOLD 4
+importance4.1 <- varImp(fold4.1_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall4.1 = Overall)
+importance4.2 <- varImp(fold4.2_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall4.2 = Overall)
+importance4.3 <- varImp(fold4.3_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall4.3 = Overall)
+importance4.4 <- varImp(fold4.4_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall4.4 = Overall)
+importance4.5 <- varImp(fold4.5_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall4.5 = Overall)
+# FOLD 1
+importance5.1 <- varImp(fold5.1_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall5.1 = Overall)
+importance5.2 <- varImp(fold5.2_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall5.2 = Overall)
+importance5.3 <- varImp(fold5.3_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall5.3 = Overall)
+importance5.4 <- varImp(fold5.4_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall5.4 = Overall)
+importance5.5 <- varImp(fold5.5_impute)$importance %>% as.data.frame() %>% rownames_to_column() %>% 
+  rename(overall5.5 = Overall)
+
+# joining everything together
+importance <- importance1.1 %>% 
+  left_join(importance1.2, by="rowname") %>% 
+  left_join(importance1.3, by="rowname") %>% 
+  left_join(importance1.4, by="rowname") %>% 
+  left_join(importance1.5, by="rowname") %>%
+# fold 2
+  left_join(importance2.1, by="rowname") %>% 
+  left_join(importance2.2, by="rowname") %>% 
+  left_join(importance2.3, by="rowname") %>% 
+  left_join(importance2.4, by="rowname") %>% 
+  left_join(importance2.5, by="rowname") %>%
+# fold 3
+  left_join(importance3.1, by="rowname") %>% 
+  left_join(importance3.2, by="rowname") %>% 
+  left_join(importance3.3, by="rowname") %>% 
+  left_join(importance3.4, by="rowname") %>% 
+  left_join(importance3.5, by="rowname") %>%
+# fold 4
+  left_join(importance4.1, by="rowname") %>% 
+  left_join(importance4.2, by="rowname") %>% 
+  left_join(importance4.3, by="rowname") %>% 
+  left_join(importance4.4, by="rowname") %>% 
+  left_join(importance4.5, by="rowname") %>%
+# fold 5
+  left_join(importance5.1, by="rowname") %>% 
+  left_join(importance5.2, by="rowname") %>% 
+  left_join(importance5.3, by="rowname") %>% 
+  left_join(importance5.4, by="rowname") %>% 
+  left_join(importance5.5, by="rowname") %>% 
+# summarizing each variable
+  t() %>% 
+  row_to_names(row_number = 1) %>% 
+  as.data.frame() %>%
+  mutate_all(as.numeric)
+
+importance_mean <- importance %>% 
+  summarize_all(mean) %>% 
+# combining factors
+  mutate(any_misc = (any_miscsuccessful_preg + any_miscmiscarriage)/2,
+         any_off_survive = (any_off_surviveoff_survived + any_off_surviveoff_died)/2,
+         avg_mom_rel_rank = (avg_mom_rel_rankat_moms_rank + avg_mom_rel_rankbelow_moms_rank)/2,
+         rank_rel_any_daughter = (rank_rel_any_daughterfocal_below_daughters_rank + rank_rel_any_daughterno_alive_daughter)/2,
+         cat_abs_active_rank_change = (cat_abs_active_rank_changeactive_fall + cat_abs_active_rank_changeactive_rise)/2) %>% 
+  dplyr::select(-any_miscsuccessful_preg, -any_miscmiscarriage, 
+         -any_off_surviveoff_survived, -any_off_surviveoff_died,
+         -avg_mom_rel_rankat_moms_rank, -avg_mom_rel_rankbelow_moms_rank, 
+         -rank_rel_any_daughterfocal_below_daughters_rank, -rank_rel_any_daughterno_alive_daughter,
+         -cat_abs_active_rank_changeactive_fall, -cat_abs_active_rank_changeactive_rise) %>% 
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  arrange(V1) %>% 
+  rename(mean = V1)
+
+importance_sd <- importance %>% 
+  summarize_all(sd) %>% 
+# combining factors
+  mutate(any_misc = (any_miscsuccessful_preg + any_miscmiscarriage)/2,
+         any_off_survive = (any_off_surviveoff_survived + any_off_surviveoff_died)/2,
+         avg_mom_rel_rank = (avg_mom_rel_rankat_moms_rank + avg_mom_rel_rankbelow_moms_rank)/2,
+         rank_rel_any_daughter = (rank_rel_any_daughterfocal_below_daughters_rank + rank_rel_any_daughterno_alive_daughter)/2,
+         cat_abs_active_rank_change = (cat_abs_active_rank_changeactive_fall + cat_abs_active_rank_changeactive_rise)/2) %>% 
+  dplyr::select(-any_miscsuccessful_preg, -any_miscmiscarriage, 
+         -any_off_surviveoff_survived, -any_off_surviveoff_died,
+         -avg_mom_rel_rankat_moms_rank, -avg_mom_rel_rankbelow_moms_rank, 
+         -rank_rel_any_daughterfocal_below_daughters_rank, -rank_rel_any_daughterno_alive_daughter,
+         -cat_abs_active_rank_changeactive_fall, -cat_abs_active_rank_changeactive_rise) %>% 
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  arrange(V1) %>% 
+  rename(sd = V1)
+  
+importance_summary = importance_mean %>% 
+  left_join(importance_sd)
+
+
+# adding better names
+rows <- c("Incidence of pucture",
+          "Incidence of limp",
+          "Major health event",
+          "Estrogen concentration",
+          "Active rank change", # 5
+          "Pregnancy outcome",
+          "Eigenvector centrality",
+          "Offspring survival",
+          "Per. time grooming (IP)",
+          "SCI directed (M)", # 10
+          "Progesterone concentration",
+          "No. weak bonds (F)",
+          "AGI directed (F)",
+          "Parasite richness",
+          "Pregnancy duration", # 15
+          "Reciprocity (M)",
+          "AGI (M)",
+          "AGI received (M)",
+          "Per. time groomed by infant",
+          "Thyroid hormone concentration", # 20
+          "Per. time grooming (NIP)",
+          "Per. time other social behavior (NIP)",
+          "Per. time infant suckling",
+          "Per. time supporting infant ventrally",
+          "No. strong bonds (F)", # 25
+          "DSI (F)",
+          "Per. time supporting infant dorsally",
+          "No. not bonded (M)",
+          "Glucocorticoid concentration",
+          "Trichuris count", # 30
+          "Reciprocity (F)",
+          "SCI (F)",
+          "Per. time foraging (NIP)",
+          "AGI (F)",
+          "No. not bonded (F)", # 35
+          "SCI received (F)",
+          "Per. time supporting infant",
+          "Per. time away from infant",
+          "No. total grooming partners (F)",
+          "SCI received (M)", # 40
+          "No. total grooming partners",
+          "Per. time resting (NIP)",
+          "AGI received (F)",
+          "Per. time no neighbors (IP)",
+          "SCI directed (F)", # 45
+          "Per. time no neighbors (NIP)",
+          "Rank relative to mother", 
+          "Cycling duration",
+          "Rank relative to daughters")
+      
+# adding categories
+cats <- c("Illness & injury",
+          "Illness & injury",
+          "Illness & injury",
+          "Endocrine",
+          "Rank", # 5
+          "Reproduction",
+          "Overall sociality",
+          "Reproduction",
+          "Activity budget",
+          "Overall sociality", # 10
+          "Endocrine",
+          "Overall sociality",
+          "Agonism",
+          "Parasite",
+          "Reproduction", # 15
+          "Dyadic sociality",
+          "Agonism",
+          "Agonism",
+          "Infant interaction",
+          "Endocrine", # 20
+          "Activity budget",
+          "Activity budget",
+          "Infant interaction",
+          "Infant interaction",
+          "Overall sociality", # 25
+          "Dyadic sociality",
+          "Infant interaction",
+          "Overall sociality",
+          "Endocrine",
+          "Parasite", # 30
+          "Dyadic sociality",
+          "Overall sociality",
+          "Activity budget",
+          "Agonism",
+          "Overall sociality", # 35
+          "Overall sociality",
+          "Infant interaction",
+          "Infant interaction",
+          "Overall sociality",
+          "Overall sociality", # 40
+          "Overall sociality",
+          "Activity budget",
+          "Agonism",
+          "Activity budget",
+          "Overall sociality", # 45
+          "Activity budget",
+          "Rank", 
+          "Reproduction",
+          "Rank")
+
+# adding to df
+importance_summary <- importance_summary %>% 
+  cbind(rows, cats)
+
+# calculating upper and lower for error bars
+importance_summary <- importance_summary %>% 
+  mutate(min = mean - sd,
+         max = mean + sd)
+# seting puncture min to 0
+importance_summary[importance_summary$rowname == "puncture_cat1", "min"] <- 0
+```
+
+
+## Figure S6
+```{r, fig.width=6, fig.height=10}
+# plotting
+importance <- importance_summary %>%
+  mutate(rows = forcats::fct_inorder(rows)) %>%
+  mutate(cats_new = case_when(cats == "Activity budget" ~ "1. Activity budget",
+                              cats == "Endocrine" ~ "2. Endocrine",
+                              cats == "Illness & injury" ~ "3. Illness & injury",
+                              cats == "Parasite" ~ "4. Parasite",
+                              cats == "Reproduction" ~ "5. Reproduction",
+                              cats == "Infant interaction" ~ "6. Maternal care",
+                              cats == "Overall sociality" ~ "7. Social integration",
+                              cats == "Dyadic sociality" ~ "8. Dyadic sociality",
+                              cats == "Agonism" ~ "9. Agonism",
+                              cats == "Rank" ~ "10. Social dominance rank")) %>%
+  mutate(cats_order = case_when(cats == "Activity budget" ~ 1,
+                              cats == "Endocrine" ~ 2,
+                              cats == "Illness & injury" ~ 3,
+                              cats == "Parasite" ~ 4,
+                              cats == "Reproduction" ~ 5,
+                              cats == "Infant interaction" ~ 6,
+                              cats == "Overall sociality" ~ 7,
+                              cats == "Dyadic sociality" ~ 8,
+                              cats == "Agonism" ~ 9,
+                              cats == "Rank" ~ 10)) %>% 
+  mutate(cats_new = fct_reorder(cats_new, cats_order)) %>%
+  ggplot(aes(x = rows, y = mean, fill= cats_new))+
+    geom_col(aes(x = rows, y = mean, fill=cats_new))+
+  geom_linerange(aes(ymin = min, ymax = max)) +
+    coord_flip()+
+    theme_bw() +
+  xlab("") +
+  ylab("Importance") +
+  scale_fill_manual(values = c("1. Activity budget" = "#1B9E77",
+                               "9. Agonism" = "#A6761D",
+                               "8. Dyadic sociality" = "#E6AB02",
+                               "2. Endocrine" = "#7570B3",
+                               "3. Illness & injury" = "#666666",
+                               "6. Maternal care" = "#66A61E",
+                               "7. Social integration" = "#D95F02",
+                                "4. Parasite" = "#E7298A",
+                               "10. Social dominance rank" = "#2E86AB",
+                                "5. Reproduction" = "#040926")) +
+  labs(fill = "Trait category")
+  
+importance
+```
+
+
+
+# Correlation matrix (Table S4)
+```{r}
+corr_matrix_num <- rf_best_predictions %>% 
+  select(per_groom_resid, ni_per_forage_resid, ni_per_groom_resid, per_no_neighbors_resid, ni_per_no_neighbors_resid, ni_per_other_soc_resid, ni_per_rest_resid, 
+         avg_resid_log_e, avg_resid_log_gc, avg_resid_log_p, avg_resid_log_th,
+         limp_cat, major_health_event_cat, puncture_cat,
+         avg_richness_resid, avg_log_trichuris_resid,
+         avg_log_cycling_resid, avg_preg_resid,
+         per_kc_away_none_resid, per_be_groomed_infant_resid, per_ks_suckle_resid, per_kc_support_resid, per_kc_dorsal_resid, per_kc_ventral_resid,
+         eigen_resid, not_bonded_f_resid, not_bonded_m_resid, strongly_bonded_f_resid, total_grooming_partners_f_resid, total_grooming_partners_resid, weakly_bonded_f_resid, sci_f_resid, sci_f_dir_resid, sci_m_dir_resid, sci_f_rec_resid, sci_m_rec_resid,
+         dsi_f_resid, recip_f_resid, recip_m_resid,
+         agi_f_resid, agi_m_resid, agi_f_dir_resid, agi_f_rec_resid, agi_m_rec_resid)  %>% 
+  mutate_all(as.numeric)
+
+
+corr_matrix <- abs(round(cor(corr_matrix_num), 2))
+```
+

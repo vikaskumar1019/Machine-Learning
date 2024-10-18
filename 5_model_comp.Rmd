@@ -1,0 +1,508 @@
+---
+title: "Model comparisons"
+output:
+  html_document:
+    theme: sandstone
+    highlight: tango
+    toc: true
+    toc_float: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading packages
+```{r}
+library(tidyverse)
+library(rptR)
+library(gridExtra)
+```
+
+# Loading data
+
+```{r}
+rf_avg_predictions <- read_csv("../1_data/rf_avg_predictions.csv")
+enr_avg_predictions <- read_csv("../1_data/enr_avg_predictions.csv")
+gpm_avg_predictions <- read_csv("../1_data/gpm_avg_predictions.csv")
+```
+
+# Random forest
+```{r, fig.height=4, fig.width=6}
+# Plot
+rf_plot <- ggplot(rf_avg_predictions, aes(x = age_year, y = avg_bio_age)) +
+  geom_point(alpha = 0.5) +
+  stat_smooth(color = "firebrick", method = "lm", se=F, size=2, alpha=0.5) +
+  theme_bw() +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  scale_x_continuous(breaks = seq(2, 28, by = 2)) +
+  scale_y_continuous(limits = c(4, 18), breaks = seq(2, 28, by = 2)) +
+  xlab("Chronological age (years)") +
+  ylab("Predicted age (years)") +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=12))
+
+# determining the R2
+r_rf <- cor(rf_avg_predictions$age_year, rf_avg_predictions$avg_bio_age, method = c("pearson"))
+r_rf
+r_rf^2
+
+# median error
+# median difference between bio age and age
+median(abs(rf_avg_predictions$avg_bio_age - rf_avg_predictions$age_year))
+mean(abs(rf_avg_predictions$avg_bio_age - rf_avg_predictions$age_year))
+range(rf_avg_predictions$avg_bio_age - rf_avg_predictions$age_year)
+
+
+# slope
+rf_mod <- lm(avg_bio_age ~ age_year, data=rf_avg_predictions)
+summary(rf_mod)
+rf_mod$coefficients
+```
+
+## Repeatability
+
+more generally referred to as the intra-class correlation (ICC)
+https://cran.r-project.org/web/packages/rptR/vignettes/rptR.html
+
+The repeatability coefficient is a precision measure which represents the value below which the absolute difference between two repeated test results may be expected to lie with a probability of 95%.
+
+INTERPRETATION
+https://onlinelibrary.wiley.com/doi/full/10.1002/evl3.40
+"Individual repeatability (R), defined as the proportion of observed variance attributable to among-individual differences"
+
+### Residuals
+```{r}
+# Taking the residuals of rf_mod
+rf_avg_predictions$bio_age_resid = residuals(rf_mod)
+
+rf_avg_predictions$bio_age_resid = as.numeric(rf_avg_predictions$bio_age_resid)
+
+# ensuring there is no age association
+rf_avg_predictions %>% 
+  ggplot(aes(x=age_year, y=bio_age_resid)) +
+  geom_point() +
+  geom_smooth(method="lm")
+
+
+# analysis
+rf_rpt <- rpt(bio_age_resid ~ (1 | anon_sname), grname = "anon_sname", 
+              data = rf_avg_predictions, datatype = "Gaussian", 
+    nboot = 0, npermut = 0)
+print(rf_rpt)
+
+# bootstrapping to get CI
+rf_rpt_bs <- rpt(bio_age_resid ~ (1 | anon_sname), grname = "anon_sname", 
+                 data = rf_avg_predictions, datatype = "Gaussian", 
+    nboot = 1000, npermut = 0)
+print(rf_rpt_bs)
+plot(rf_rpt_bs, cex.main = 1)
+```
+
+#### Figure 2B
+```{r, fig.height=5, fig.width=8}
+# finding top 25 sampled individuals
+top_sampled_id <- rf_avg_predictions %>% 
+  group_by(anon_sname) %>% 
+  dplyr::summarize(n = n(),
+            median = median(bio_age_resid)) %>% 
+  arrange(desc(n)) %>% 
+  slice(1:25)
+
+repeatability <- rf_avg_predictions %>% 
+  filter(anon_sname %in% top_sampled_id$anon_sname) %>%
+  left_join(top_sampled_id, by = "anon_sname") %>% 
+  mutate(anon_sname = fct_reorder(as.factor(anon_sname), median)) %>%
+  ggplot() +
+  geom_jitter(aes(x = anon_sname, y = bio_age_resid, color = anon_sname)) +
+  geom_boxplot(aes(x=anon_sname, y = bio_age_resid), alpha = 0.1, outlier.shape = NA) +
+  theme_bw() +
+  ylab(bquote(''*'Age'[P]*', controlling for ' *'Age'[C]*'')) +
+  xlab("Individual identity") +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position = "none",
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 10))
+repeatability
+
+```
+
+
+
+### Delta age
+```{r}
+# delta age 
+rf_avg_predictions <- rf_avg_predictions %>% 
+  mutate(delta_age = avg_bio_age - age_year)
+
+rf_avg_predictions %>% 
+  ggplot() +
+  geom_histogram(aes(x=delta_age)) +
+  theme_bw()
+
+rf_avg_predictions %>% 
+  ggplot(aes(x=age_year, y=delta_age)) +
+  geom_point() +
+  geom_smooth() +
+  theme_bw()
+
+
+# analysis
+rf_rpt_deltaage <- rpt(delta_age ~ age_year + (1 | anon_sname), grname = "anon_sname", 
+              data = rf_avg_predictions, datatype = "Gaussian", 
+    nboot = 0, npermut = 0)
+print(rf_rpt_deltaage)
+
+# bootstrapping to get CI
+rf_rpt_bs_deltaage <- rpt(delta_age ~ age_year + (1 | anon_sname), grname = "anon_sname", 
+                 data = rf_avg_predictions, datatype = "Gaussian", 
+    nboot = 1000, npermut = 0)
+print(rf_rpt_bs_deltaage)
+plot(rf_rpt_bs_deltaage, cex.main = 1)
+```
+
+# ENR
+```{r}
+# Plot
+ggplot(enr_avg_predictions, aes(x = age_year, y = avg_bio_age)) +
+  geom_point(alpha = 0.25) +
+  stat_smooth(fill = "firebrick", color = NA, method = "lm") +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  scale_x_continuous(breaks = seq(2, 28, by = 2)) +
+  scale_y_continuous(breaks = seq(2, 28, by = 2)) +
+  labs(x = "Chronological Age", y = "Biological Age") +
+  theme_bw()
+
+# determining the R2
+r_enr <- cor(enr_avg_predictions$age_year, enr_avg_predictions$avg_bio_age, method = c("pearson"))
+r_enr
+r_enr^2
+
+# median error
+# median difference between bio age and age
+median(abs(enr_avg_predictions$avg_bio_age - enr_avg_predictions$age_year))
+mean(abs(enr_avg_predictions$avg_bio_age - enr_avg_predictions$age_year))
+range(enr_avg_predictions$avg_bio_age - enr_avg_predictions$age_year)
+
+
+# slope
+enr_mod <- lm(avg_bio_age ~ age_year, data=enr_avg_predictions)
+summary(enr_mod)
+enr_mod$coefficients
+```
+
+## Repeatability
+
+### Residuals
+```{r}
+# Taking the residuals of enr_mod
+enr_avg_predictions$bio_age_resid = residuals(enr_mod)
+
+# ensuring there is no age association
+enr_avg_predictions %>% 
+  ggplot(aes(x=age_year, y=bio_age_resid)) +
+  geom_point() +
+  geom_smooth(method="lm")
+
+
+# analysis
+enr_rpt <- rpt(bio_age_resid ~ (1 | anon_sname), grname = "anon_sname", 
+              data = enr_avg_predictions, datatype = "Gaussian", 
+    nboot = 0, npermut = 0)
+print(enr_rpt)
+
+# bootstrapping to get CI
+enr_rpt_bs <- rpt(bio_age_resid ~ (1 | anon_sname), grname = "anon_sname", 
+                 data = enr_avg_predictions, datatype = "Gaussian", 
+    nboot = 1000, npermut = 0)
+print(enr_rpt_bs)
+plot(enr_rpt_bs, cex.main = 1)
+```
+
+### Delta age
+```{r}
+# delta age 
+enr_avg_predictions <- enr_avg_predictions %>% 
+  mutate(delta_age = avg_bio_age - age_year)
+
+enr_avg_predictions %>% 
+  ggplot() +
+  geom_histogram(aes(x=delta_age)) +
+  theme_bw()
+
+enr_avg_predictions %>% 
+  ggplot(aes(x=age_year, y=delta_age)) +
+  geom_point() +
+  geom_smooth() +
+  theme_bw()
+
+
+# analysis
+enr_rpt_deltaage <- rpt(delta_age ~ age_year + (1 | anon_sname), grname = "anon_sname", 
+              data = enr_avg_predictions, datatype = "Gaussian", 
+    nboot = 0, npermut = 0)
+print(enr_rpt_deltaage)
+
+# bootstrapping to get CI
+enr_rpt_bs_deltaage <- rpt(delta_age ~ age_year + (1 | anon_sname), grname = "anon_sname", 
+                 data = enr_avg_predictions, datatype = "Gaussian", 
+    nboot = 1000, npermut = 0)
+print(enr_rpt_bs_deltaage)
+plot(enr_rpt_bs_deltaage, cex.main = 1)
+```
+
+# GPM
+```{r}
+# Plot
+ggplot(gpm_avg_predictions, aes(x = age_year, y = avg_bio_age)) +
+  geom_point(alpha = 0.25) +
+  stat_smooth(fill = "firebrick", color = NA, method = "lm") +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  scale_x_continuous(breaks = seq(2, 28, by = 2)) +
+  scale_y_continuous(breaks = seq(2, 28, by = 2)) +
+  labs(x = "Chronological Age", y = "Biological Age") +
+  theme_bw()
+
+# determining the R2
+r_gpm <- cor(gpm_avg_predictions$age_year, gpm_avg_predictions$avg_bio_age, method = c("pearson"))
+r_gpm
+r_gpm^2
+
+# median error
+# median difference between bio age and age
+median(abs(gpm_avg_predictions$avg_bio_age - gpm_avg_predictions$age_year))
+mean(abs(gpm_avg_predictions$avg_bio_age - gpm_avg_predictions$age_year))
+range(gpm_avg_predictions$avg_bio_age - gpm_avg_predictions$age_year)
+
+# slope
+gpm_mod <- lm(avg_bio_age ~ age_year, data=gpm_avg_predictions)
+summary(gpm_mod)
+gpm_mod$coefficients
+```
+
+## Repeatability
+
+### Residuals
+```{r}
+# Taking the residuals of enr_mod
+gpm_avg_predictions$bio_age_resid = residuals(gpm_mod)
+
+# ensuring there is no age association
+gpm_avg_predictions %>% 
+  ggplot(aes(x=age_year, y=bio_age_resid)) +
+  geom_point() +
+  geom_smooth(method="lm")
+
+
+# analysis
+gpm_rpt <- rpt(bio_age_resid ~ (1 | anon_sname), grname = "anon_sname", 
+              data = gpm_avg_predictions, datatype = "Gaussian", 
+    nboot = 0, npermut = 0)
+print(gpm_rpt)
+
+# bootstrapping to get CI
+gpm_rpt_bs <- rpt(bio_age_resid ~ (1 | anon_sname), grname = "anon_sname", 
+                 data = gpm_avg_predictions, datatype = "Gaussian", 
+    nboot = 1000, npermut = 0)
+print(gpm_rpt_bs)
+plot(gpm_rpt_bs, cex.main = 1)
+```
+
+### Delta age
+```{r}
+# delta age 
+gpm_avg_predictions <- gpm_avg_predictions %>% 
+  mutate(delta_age = avg_bio_age - age_year)
+
+gpm_avg_predictions %>% 
+  ggplot() +
+  geom_histogram(aes(x=delta_age)) +
+  theme_bw()
+
+gpm_avg_predictions %>% 
+  ggplot(aes(x=age_year, y=delta_age)) +
+  geom_point() +
+  geom_smooth() +
+  theme_bw()
+
+
+# analysis
+gpm_rpt_deltaage <- rpt(delta_age ~ age_year + (1 | anon_sname), grname = "anon_sname", 
+              data = gpm_avg_predictions, datatype = "Gaussian", 
+    nboot = 0, npermut = 0)
+print(gpm_rpt_deltaage)
+
+# bootstrapping to get CI
+gpm_rpt_bs_deltaage <- rpt(delta_age ~ age_year + (1 | anon_sname), grname = "anon_sname", 
+                 data = gpm_avg_predictions, datatype = "Gaussian", 
+    nboot = 1000, npermut = 0)
+print(gpm_rpt_bs_deltaage)
+plot(gpm_rpt_bs_deltaage, cex.main = 1)
+```
+
+# Looking at correlations
+
+## Between bio age
+```{r}
+# rf and enr
+cor(rf_avg_predictions$avg_bio_age, enr_avg_predictions$avg_bio_age)
+# rf and gpm
+cor(rf_avg_predictions$avg_bio_age, gpm_avg_predictions$avg_bio_age)
+# enr and gpm
+cor(enr_avg_predictions$avg_bio_age, gpm_avg_predictions$avg_bio_age)
+
+
+# Plotting them against each other
+data <- rf_avg_predictions %>% 
+  rename(rf_bio_age = avg_bio_age) %>% 
+  left_join(select(enr_avg_predictions, anon_sname, age_year, enr_bio_age = avg_bio_age), by=c("anon_sname", "age_year")) %>% 
+  left_join(select(gpm_avg_predictions, anon_sname, age_year, gpm_bio_age = avg_bio_age), by=c("anon_sname", "age_year"))
+
+
+data %>% 
+  ggplot(aes(x=rf_bio_age, y=enr_bio_age)) +
+  geom_point() +
+  geom_smooth()
+
+data %>% 
+  ggplot(aes(x=rf_bio_age, y=gpm_bio_age)) +
+  geom_point() +
+  geom_smooth()
+
+data %>% 
+  ggplot(aes(x=gpm_bio_age, y=enr_bio_age)) +
+  geom_point() +
+  geom_smooth()
+
+```
+
+## Between delta age
+```{r}
+# rf and enr
+cor(rf_avg_predictions$delta_age, enr_avg_predictions$delta_age)
+# rf and gpm
+cor(rf_avg_predictions$delta_age, gpm_avg_predictions$delta_age)
+# enr and gpm
+cor(enr_avg_predictions$delta_age, gpm_avg_predictions$delta_age)
+
+
+# Plotting them against each other
+data2 <- rf_avg_predictions %>% 
+  rename(rf_delta_age = delta_age) %>% 
+  left_join(select(enr_avg_predictions, anon_sname, age_year, enr_delta_age = delta_age), by=c("anon_sname", "age_year")) %>% 
+  left_join(select(gpm_avg_predictions, anon_sname, age_year, gpm_delta_age = delta_age), by=c("anon_sname", "age_year"))
+
+
+data2 %>% 
+  ggplot(aes(x=rf_delta_age, y=enr_delta_age)) +
+  geom_point() +
+  geom_smooth()
+
+data2 %>% 
+  ggplot(aes(x=rf_delta_age, y=gpm_delta_age)) +
+  geom_point() +
+  geom_smooth()
+
+data2 %>% 
+  ggplot(aes(x=gpm_delta_age, y=enr_delta_age)) +
+  geom_point() +
+  geom_smooth()
+
+```
+
+
+
+# Figure S5
+```{r, fig.width=10, fig.height=4.5}
+rf <- ggplot(rf_avg_predictions, aes(x = age_year, y = avg_bio_age)) +
+  geom_point(alpha = 0.5) +
+  stat_smooth(color = "firebrick", method = "lm", se=F, size=2, alpha=0.5) +
+  theme_bw() +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  scale_x_continuous(breaks = seq(2, 28, by = 2)) +
+  scale_y_continuous(limits = c(4, 20), breaks = seq(2, 28, by = 2)) +
+  xlab(bquote('Chronological age ('*'Age'[C]*')')) +
+  ylab(bquote('Predicted age ('*'Age'[P]*')')) +
+  ggtitle("Random forest regression") +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=12)) +
+  labs(tag="   ")
+
+enr <- ggplot(enr_avg_predictions, aes(x = age_year, y = avg_bio_age)) +
+  geom_point(alpha = 0.5) +
+  stat_smooth(color = "firebrick", method = "lm", se=F, size=2, alpha=0.5) +
+  theme_bw() +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  scale_x_continuous(breaks = seq(2, 28, by = 2)) +
+  scale_y_continuous(limits = c(4, 20), breaks = seq(2, 28, by = 2)) +
+  xlab(bquote('Chronological age ('*'Age'[C]*')')) +
+  ylab(bquote('Predicted age ('*'Age'[P]*')')) +
+  ggtitle("Elastic net regression") +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=12)) +
+  labs(tag="   ")
+
+gpm <- ggplot(gpm_avg_predictions, aes(x = age_year, y = avg_bio_age)) +
+  geom_point(alpha = 0.5) +
+  stat_smooth(color = "firebrick", method = "lm", se=F, size=2, alpha=0.5) +
+  theme_bw() +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  scale_x_continuous(breaks = seq(2, 28, by = 2)) +
+  scale_y_continuous(limits = c(4, 20), breaks = seq(2, 28, by = 2)) +
+  ggtitle("Gaussian process regression") +
+  xlab(bquote('Chronological age ('*'Age'[C]*')')) +
+  ylab(bquote('Predicted age ('*'Age'[P]*')')) +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=12)) +
+  labs(tag="   ")
+
+rf_en_gp <- grid.arrange(rf, enr, gpm, nrow=1)
+```
+
+# Figure S7
+
+```{r, fig.width=7, fig.height=6}
+# data are from Mauna's paper
+other_mod_compare <- data.frame(model = c("Epigenetic clock", "Dentine exposure", "Microbiome clock", "Immature BMI",
+                                   "Adult BMI","Flow cytometry", "Blood smear", "NPB clock"),
+                         r2 = c(0.60, 0.85, 0.49, 0.33, 0.30, 0.00, 0.04, 0.51),
+                         median_error = c(1.62, 1.12, 2.15, 2.30, 3.25, 4.27, 2.00, 2.33))
+
+other_mod_compare <- other_mod_compare %>% 
+  mutate(model=fct_relevel(model,c("NPB clock",
+                                   "Dentine exposure",
+                                   "Epigenetic clock",
+                                   "Microbiome clock",
+                                   "Immature BMI",
+                                   "Adult BMI",
+                                   "Blood smear",
+                                   "Flow cytometry"))) %>%
+ arrange(model)
+
+
+R2 <- other_mod_compare %>% 
+  ggplot(aes(x=model, y=r2)) +
+  geom_point(size = 2) +
+  theme_bw() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  xlab("") +
+  ylab(bquote(R^2)) +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=12))
+
+med_error <- other_mod_compare %>% 
+  ggplot(aes(x=model, y=median_error)) +
+  geom_point(size = 2) +
+  theme_bw() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 10)) +
+  xlab("") +
+  ylab("Median error") +
+  theme(axis.text=element_text(size=10),
+        axis.title=element_text(size=12))
+
+other_mod_comparison_plot <- grid.arrange(R2, med_error, nrow=2)
+```
+
+

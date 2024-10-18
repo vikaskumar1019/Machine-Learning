@@ -1,0 +1,477 @@
+---
+title: "Gaussian process model"
+output:
+  html_document:
+    theme: sandstone
+    highlight: tango
+    toc: true
+    toc_float: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading packages
+```{r}
+library(tidyverse)
+library(caret)
+library(randomForest)
+library(Hmisc)
+library(gridExtra)
+library(reshape2)
+```
+
+# Data
+Use data frames created by 2_prep_data_impute.Rmd script
+
+# Models
+```{r, eval=FALSE}
+set.seed(123)
+# FOLD 1
+############## 1.1
+fold1.1_impute <- train(age_year ~., 
+                     data = train1.1[, !(colnames(train1.1) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold1.1_impute_prediction <- predict(fold1.1_impute, newdata=test1.1, type="raw")
+# save it in a data frame with age and the predictors
+fold1.1_impute_prediction_combined <- test1.1 %>% 
+  mutate(bio_age = fold1.1_impute_prediction)
+
+############## 1.2
+fold1.2_impute <- train(age_year ~., 
+                     data = train1.2[, !(colnames(train1.2) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold1.2_impute_prediction <- predict(fold1.2_impute, newdata=test1.2, type="raw")
+# save it in a data frame with age and the predictors
+fold1.2_impute_prediction_combined <- test1.2 %>% 
+  mutate(bio_age = fold1.2_impute_prediction)
+
+############## 1.3
+fold1.3_impute <- train(age_year ~., 
+                     data = train1.3[, !(colnames(train1.3) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold1.3_impute_prediction <- predict(fold1.3_impute, newdata=test1.3, type="raw")
+# save it in a data frame with age and the predictors
+fold1.3_impute_prediction_combined <- test1.3 %>% 
+  mutate(bio_age = fold1.3_impute_prediction)
+
+############## 1.4
+fold1.4_impute <- train(age_year ~., 
+                     data = train1.4[, !(colnames(train1.4) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold1.4_impute_prediction <- predict(fold1.4_impute, newdata=test1.4, type="raw")
+# save it in a data frame with age and the predictors
+fold1.4_impute_prediction_combined <- test1.4 %>% 
+  mutate(bio_age = fold1.4_impute_prediction)
+
+############## 1.5
+fold1.5_impute <- train(age_year ~., 
+                     data = train1.5[, !(colnames(train1.5) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold1.5_impute_prediction <- predict(fold1.5_impute, newdata=test1.5, type="raw")
+# save it in a data frame with age and the predictors
+fold1.5_impute_prediction_combined <- test1.5 %>% 
+  mutate(bio_age = fold1.5_impute_prediction)
+
+
+
+# FOLD 2
+############## 2.1
+fold2.1_impute <- train(age_year ~., 
+                     data = train2.1[, !(colnames(train2.1) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold2.1_impute_prediction <- predict(fold2.1_impute, newdata=test2.1, type="raw")
+# save it in a data frame with age and the predictors
+fold2.1_impute_prediction_combined <- test2.1 %>% 
+  mutate(bio_age = fold2.1_impute_prediction)
+
+############## 2.2
+fold2.2_impute <- train(age_year ~., 
+                     data = train2.2[, !(colnames(train2.2) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold2.2_impute_prediction <- predict(fold2.2_impute, newdata=test2.2, type="raw")
+# save it in a data frame with age and the predictors
+fold2.2_impute_prediction_combined <- test2.2 %>% 
+  mutate(bio_age = fold2.2_impute_prediction)
+
+############## 2.3
+fold2.3_impute <- train(age_year ~., 
+                     data = train2.3[, !(colnames(train2.3) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold2.3_impute_prediction <- predict(fold2.3_impute, newdata=test2.3, type="raw")
+# save it in a data frame with age and the predictors
+fold2.3_impute_prediction_combined <- test2.3 %>% 
+  mutate(bio_age = fold2.3_impute_prediction)
+
+############## 2.4
+fold2.4_impute <- train(age_year ~., 
+                     data = train2.4[, !(colnames(train2.4) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold2.4_impute_prediction <- predict(fold2.4_impute, newdata=test2.4, type="raw")
+# save it in a data frame with age and the predictors
+fold2.4_impute_prediction_combined <- test2.4 %>% 
+  mutate(bio_age = fold2.4_impute_prediction)
+
+############## 2.5
+fold2.5_impute <- train(age_year ~., 
+                     data = train2.5[, !(colnames(train2.5) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold2.5_impute_prediction <- predict(fold2.5_impute, newdata=test2.5, type="raw")
+# save it in a data frame with age and the predictors
+fold2.5_impute_prediction_combined <- test2.5 %>% 
+  mutate(bio_age = fold2.5_impute_prediction)
+
+
+
+# FOLD 3
+############## 3.1
+fold3.1_impute <- train(age_year ~., 
+                     data = train3.1[, !(colnames(train3.1) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold3.1_impute_prediction <- predict(fold3.1_impute, newdata=test3.1, type="raw")
+# save it in a data frame with age and the predictors
+fold3.1_impute_prediction_combined <- test3.1 %>% 
+  mutate(bio_age = fold3.1_impute_prediction)
+
+############## 3.2
+fold3.2_impute <- train(age_year ~., 
+                     data = train3.2[, !(colnames(train3.2) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold3.2_impute_prediction <- predict(fold3.2_impute, newdata=test3.2, type="raw")
+# save it in a data frame with age and the predictors
+fold3.2_impute_prediction_combined <- test3.2 %>% 
+  mutate(bio_age = fold3.2_impute_prediction)
+
+############## 3.3
+fold3.3_impute <- train(age_year ~., 
+                     data = train3.3[, !(colnames(train3.3) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold3.3_impute_prediction <- predict(fold3.3_impute, newdata=test3.3, type="raw")
+# save it in a data frame with age and the predictors
+fold3.3_impute_prediction_combined <- test3.3 %>% 
+  mutate(bio_age = fold3.3_impute_prediction)
+
+############## 3.4
+fold3.4_impute <- train(age_year ~., 
+                     data = train3.4[, !(colnames(train3.4) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold3.4_impute_prediction <- predict(fold3.4_impute, newdata=test3.4, type="raw")
+# save it in a data frame with age and the predictors
+fold3.4_impute_prediction_combined <- test3.4 %>% 
+  mutate(bio_age = fold3.4_impute_prediction)
+
+############## 3.5
+fold3.5_impute <- train(age_year ~., 
+                     data = train3.5[, !(colnames(train3.5) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold3.5_impute_prediction <- predict(fold3.5_impute, newdata=test3.5, type="raw")
+# save it in a data frame with age and the predictors
+fold3.5_impute_prediction_combined <- test3.5 %>% 
+  mutate(bio_age = fold3.5_impute_prediction)
+
+
+
+# FOLD 4
+############## 4.1
+fold4.1_impute <- train(age_year ~., 
+                     data = train4.1[, !(colnames(train4.1) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold4.1_impute_prediction <- predict(fold4.1_impute, newdata=test4.1, type="raw")
+# save it in a data frame with age and the predictors
+fold4.1_impute_prediction_combined <- test4.1 %>% 
+  mutate(bio_age = fold4.1_impute_prediction)
+
+############## 4.2
+fold4.2_impute <- train(age_year ~., 
+                     data = train4.2[, !(colnames(train4.2) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold4.2_impute_prediction <- predict(fold4.2_impute, newdata=test4.2, type="raw")
+# save it in a data frame with age and the predictors
+fold4.2_impute_prediction_combined <- test4.2 %>% 
+  mutate(bio_age = fold4.2_impute_prediction)
+
+############## 4.3
+fold4.3_impute <- train(age_year ~., 
+                     data = train4.3[, !(colnames(train4.3) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold4.3_impute_prediction <- predict(fold4.3_impute, newdata=test4.3, type="raw")
+# save it in a data frame with age and the predictors
+fold4.3_impute_prediction_combined <- test4.3 %>% 
+  mutate(bio_age = fold4.3_impute_prediction)
+
+############## 4.4
+fold4.4_impute <- train(age_year ~., 
+                     data = train4.4[, !(colnames(train4.4) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold4.4_impute_prediction <- predict(fold4.4_impute, newdata=test4.4, type="raw")
+# save it in a data frame with age and the predictors
+fold4.4_impute_prediction_combined <- test4.4 %>% 
+  mutate(bio_age = fold4.4_impute_prediction)
+
+############## 4.5
+fold4.5_impute <- train(age_year ~., 
+                     data = train4.5[, !(colnames(train4.5) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold4.5_impute_prediction <- predict(fold4.5_impute, newdata=test4.5, type="raw")
+# save it in a data frame with age and the predictors
+fold4.5_impute_prediction_combined <- test4.5 %>% 
+  mutate(bio_age = fold4.5_impute_prediction)
+
+
+
+# FOLD 5
+############## 5.1
+fold5.1_impute <- train(age_year ~., 
+                     data = train5.1[, !(colnames(train5.1) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold5.1_impute_prediction <- predict(fold5.1_impute, newdata=test5.1, type="raw")
+# save it in a data frame with age and the predictors
+fold5.1_impute_prediction_combined <- test5.1 %>% 
+  mutate(bio_age = fold5.1_impute_prediction)
+
+############## 5.2
+fold5.2_impute <- train(age_year ~., 
+                     data = train5.2[, !(colnames(train5.2) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold5.2_impute_prediction <- predict(fold5.2_impute, newdata=test5.2, type="raw")
+# save it in a data frame with age and the predictors
+fold5.2_impute_prediction_combined <- test5.2 %>% 
+  mutate(bio_age = fold5.2_impute_prediction)
+
+############## 5.3
+fold5.3_impute <- train(age_year ~., 
+                     data = train5.3[, !(colnames(train5.3) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold5.3_impute_prediction <- predict(fold5.3_impute, newdata=test5.3, type="raw")
+# save it in a data frame with age and the predictors
+fold5.3_impute_prediction_combined <- test5.3 %>% 
+  mutate(bio_age = fold5.3_impute_prediction)
+
+############## 1.4
+fold5.4_impute <- train(age_year ~., 
+                     data = train5.4[, !(colnames(train5.4) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold5.4_impute_prediction <- predict(fold5.4_impute, newdata=test5.4, type="raw")
+# save it in a data frame with age and the predictors
+fold5.4_impute_prediction_combined <- test5.4 %>% 
+  mutate(bio_age = fold5.4_impute_prediction)
+
+############## 1.5
+fold5.5_impute <- train(age_year ~., 
+                     data = train5.5[, !(colnames(train5.5) %in% c("anon_sname"))], 
+                     method = "gaussprRadial",
+                     trControl = trainControl("cv", number = 5), # cross validation within each of the folds to optimize the predictions for the training data set (see this file from Mauna: Biological Aging/ NestedCVDiagram.png)
+                     tuneLength = 10, # will test 10 alpha parameters (every 0.10)
+                     metric="Rsquared", # optimal parameters are those that maximize Rsquared
+                     maximize=TRUE)
+# Predict age from model
+fold5.5_impute_prediction <- predict(fold5.5_impute, newdata=test5.5, type="raw")
+# save it in a data frame with age and the predictors
+fold5.5_impute_prediction_combined <- test5.5 %>% 
+  mutate(bio_age = fold5.5_impute_prediction)
+```
+
+# Parameters
+
+```{r}
+# Looking at sigma
+fold1.1_impute$bestTune # sigma = 0.01042008
+fold1.2_impute$bestTune # sigma = 0.01061145
+fold1.3_impute$bestTune # sigma = 0.01059461
+fold1.4_impute$bestTune # sigma = 0.01081978
+fold1.5_impute$bestTune # sigma = 0.01083431
+
+fold2.1_impute$bestTune # sigma = 0.01107649
+fold2.2_impute$bestTune # sigma = 0.01048039
+fold2.3_impute$bestTune # sigma = 0.01084761
+fold2.4_impute$bestTune # sigma = 0.01069712
+fold2.5_impute$bestTune # sigma = 0.01066133
+
+fold3.1_impute$bestTune # sigma = 0.01092542
+fold3.2_impute$bestTune # sigma = 0.01084472
+fold3.3_impute$bestTune # sigma = 0.01088442
+fold3.4_impute$bestTune # sigma = 0.01067286
+fold3.5_impute$bestTune # sigma = 0.01075672
+
+fold4.1_impute$bestTune # sigma = 0.01123573
+fold4.2_impute$bestTune # sigma = 0.01055358
+fold4.3_impute$bestTune # sigma = 0.01071431
+fold4.4_impute$bestTune # sigma = 0.010641
+fold4.5_impute$bestTune # sigma = 0.01085861
+
+fold5.1_impute$bestTune # sigma = 0.01086236
+fold5.2_impute$bestTune # sigma = 0.01059758
+fold5.3_impute$bestTune # sigma = 0.01088023
+fold5.4_impute$bestTune # sigma = 0.01081721
+fold5.5_impute$bestTune # sigma = 0.01047586
+```
+
+
+# Model Assessment
+
+## Combining predictions
+```{r, fig.height=8, fig.width=12}
+# merging all the predictions together
+# first imputation
+impute_predictions.1 <- rbind(fold1.1_impute_prediction_combined, fold2.1_impute_prediction_combined, fold3.1_impute_prediction_combined, fold4.1_impute_prediction_combined, fold5.1_impute_prediction_combined)
+# second imputation
+impute_predictions.2 <- rbind(fold1.2_impute_prediction_combined, fold2.2_impute_prediction_combined, fold3.2_impute_prediction_combined, fold4.2_impute_prediction_combined, fold5.2_impute_prediction_combined)
+# third imputation
+impute_predictions.3 <- rbind(fold1.3_impute_prediction_combined, fold2.3_impute_prediction_combined, fold3.3_impute_prediction_combined, fold4.3_impute_prediction_combined, fold5.3_impute_prediction_combined)
+# fourth imputation
+impute_predictions.4 <- rbind(fold1.4_impute_prediction_combined, fold2.4_impute_prediction_combined, fold3.4_impute_prediction_combined, fold4.4_impute_prediction_combined, fold5.4_impute_prediction_combined)
+# fifth imputation
+impute_predictions.5 <- rbind(fold1.5_impute_prediction_combined, fold2.5_impute_prediction_combined, fold3.5_impute_prediction_combined, fold4.5_impute_prediction_combined, fold5.5_impute_prediction_combined)
+```
+
+
+## Averaging
+```{r}
+impute_predictions_avg <- impute_predictions.1 %>%
+  rename(bio_age1 = bio_age) %>% 
+  left_join(select(impute_predictions.2, bio_age2 = bio_age, anon_sname, age_year), by=c("anon_sname", "age_year")) %>% 
+  left_join(select(impute_predictions.3, bio_age3 = bio_age, anon_sname, age_year), by=c("anon_sname", "age_year")) %>% 
+  left_join(select(impute_predictions.4, bio_age4 = bio_age, anon_sname, age_year), by=c("anon_sname", "age_year")) %>% 
+  left_join(select(impute_predictions.5, bio_age5 = bio_age, anon_sname, age_year), by=c("anon_sname", "age_year")) %>% 
+  arrange(anon_sname, age_year) %>% 
+  mutate(avg_bio_age = (bio_age1 + bio_age2 + bio_age3 + bio_age4 + bio_age5)/5)
+
+
+ggplot(impute_predictions_avg, aes(x = age_year, y = avg_bio_age)) +
+  geom_point(alpha = 0.25) +
+  stat_smooth(fill = "firebrick", color = NA, method = "lm") +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  scale_x_continuous(breaks = seq(2, 28, by = 2)) +
+  scale_y_continuous(breaks = seq(2, 28, by = 2)) +
+  labs(x = "Chronological Age", y = "Biological Age") +
+  theme_bw()
+
+r <- cor(impute_predictions_avg$age_year, impute_predictions_avg$avg_bio_age, method = c("pearson"))
+r 
+r^2 
+median(abs(impute_predictions_avg$avg_bio_age - impute_predictions_avg$age_year)) 
+mean(abs(impute_predictions_avg$avg_bio_age - impute_predictions_avg$age_year)) 
+```
+
